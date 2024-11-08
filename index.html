@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tic Tac Toe</title>
+    <title>Tic Tac Toe Game</title>
     <style>
         body {
             display: flex;
@@ -48,10 +48,27 @@
             color: #007bff;
         }
         #status {
-            font-size: 1.5em;
+            font-size: 1.8em;
+            font-weight: bold;
             text-align: center;
-            margin-bottom: 15px;
-            color: #333;
+            margin-bottom: 20px;
+            color: #ffffff;
+            background-color: #333;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            animation: fadeInStatus 0.5s ease;
+        }
+        #status.X {
+            background-color: #ff4d4d; /* Red for X's turn */
+        }
+        #status.O {
+            background-color: #007bff; /* Blue for O's turn */
+        }
+        @keyframes fadeInStatus {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         #game {
             display: grid;
@@ -106,37 +123,6 @@
             background-color: #0056b3;
         }
     </style>
-  <style>
-    /* Existing styles here */
-
-    #status {
-        font-size: 1.8em;
-        font-weight: bold;
-        text-align: center;
-        margin-bottom: 20px;
-        color: #ffffff;
-        background-color: #333;
-        padding: 15px 25px;
-        border-radius: 10px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        transition: background-color 0.3s ease, transform 0.2s ease;
-        animation: fadeInStatus 0.5s ease;
-    }
-
-    #status.X {
-        background-color: #ff4d4d; /* Red for X's turn */
-    }
-
-    #status.O {
-        background-color: #007bff; /* Blue for O's turn */
-    }
-
-    @keyframes fadeInStatus {
-        from { opacity: 0; transform: translateY(-10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-</style>
-
 </head>
 <body>
     <div id="score">
@@ -151,7 +137,6 @@
     </div>
     <div id="status">Turn: X</div>
     <div id="game"></div>
-    <button onclick="resetGame()">Restart Game</button>
     <button onclick="toggleComputer()">Toggle Computer: OFF</button>
     <button id="difficultyButton" style="display: none;" onclick="toggleDifficulty()">Difficulty: Hard</button>
 
@@ -160,6 +145,8 @@
         let currentPlayer = 'X';
         let computerEnabled = false;
         let difficulty = 'Hard';
+        let gameFinished = false;
+        let resetEnabled = false; // New flag to handle the reset click
         let scores = { X: 0, O: 0 };
         const statusDisplay = document.getElementById('status');
         const scoreXDisplay = document.getElementById('scoreX');
@@ -184,6 +171,8 @@
         }
 
         function handleCellClick(event) {
+            if (gameFinished) return; // Prevent moves if the game is finished
+
             const cell = event.target;
             const cellIndex = cell.getAttribute('data-index');
 
@@ -192,16 +181,24 @@
             gameBoard[cellIndex] = currentPlayer;
             cell.textContent = currentPlayer;
             cell.classList.add(currentPlayer);
-            
+
             if (checkWinner()) {
-                statusDisplay.textContent = `Player ${currentPlayer} wins!`;
+                statusDisplay.textContent = `Player ${currentPlayer} wins! Click anywhere to play again.`;
+                statusDisplay.classList.add(currentPlayer); // Highlight winner color
                 scores[currentPlayer]++;
                 updateScore();
+                gameFinished = true;
+                setTimeout(() => { resetEnabled = true; }, 500); // Delay reset
             } else if (!gameBoard.includes('')) {
-                statusDisplay.textContent = 'Draw!';
+                statusDisplay.textContent = 'Draw! Click anywhere to play again.';
+                statusDisplay.classList.remove('X', 'O'); // Neutral color for a draw
+                gameFinished = true;
+                setTimeout(() => { resetEnabled = true; }, 500); // Delay reset
             } else {
                 currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
                 statusDisplay.textContent = `Turn: ${currentPlayer}`;
+                statusDisplay.classList.remove('X', 'O');
+                statusDisplay.classList.add(currentPlayer);
                 if (computerEnabled && currentPlayer === 'O') {
                     setTimeout(computerMove, 500);
                 }
@@ -216,22 +213,27 @@
             cell.classList.add('O');
 
             if (checkWinner()) {
-                statusDisplay.textContent = `Player O wins!`;
+                statusDisplay.textContent = `Player O wins! Click anywhere to play again.`;
+                statusDisplay.classList.add('O'); // Highlight winner color
                 scores.O++;
                 updateScore();
+                gameFinished = true;
+                setTimeout(() => { resetEnabled = true; }, 500); // Delay reset
             } else if (!gameBoard.includes('')) {
-                statusDisplay.textContent = 'Draw!';
+                statusDisplay.textContent = 'Draw! Click anywhere to play again.';
+                statusDisplay.classList.remove('X', 'O'); // Neutral color for a draw
+                gameFinished = true;
+                setTimeout(() => { resetEnabled = true; }, 500); // Delay reset
             } else {
                 currentPlayer = 'X';
                 statusDisplay.textContent = `Turn: ${currentPlayer}`;
+                statusDisplay.classList.remove('O');
+                statusDisplay.classList.add('X');
             }
         }
 
         function checkWinner() {
-            return winningConditions.some(condition => {
-                const [a, b, c] = condition;
-                return gameBoard[a] && gameBoard[a] === gameBoard[b] && gameBoard[a] === gameBoard[c];
-            });
+            return winningConditions.some(([a, b, c]) => gameBoard[a] && gameBoard[a] === gameBoard[b] && gameBoard[a] === gameBoard[c]);
         }
 
         function updateScore() {
@@ -242,7 +244,10 @@
         function resetGame() {
             gameBoard.fill('');
             currentPlayer = 'X';
+            gameFinished = false;
+            resetEnabled = false; // Reset the flag
             statusDisplay.textContent = `Turn: ${currentPlayer}`;
+            statusDisplay.classList.remove('X', 'O');
             createBoard();
         }
 
@@ -254,13 +259,12 @@
         }
 
         function toggleDifficulty() {
-            difficulty = (difficulty === 'Hard') ? 'Easy' : 'Hard';
+            difficulty = difficulty === 'Hard' ? 'Easy' : 'Hard';
             difficultyButton.textContent = `Difficulty: ${difficulty}`;
         }
 
         function minimax(newBoard, player) {
             const emptyCells = newBoard.map((val, idx) => val === '' ? idx : null).filter(val => val !== null);
-
             if (checkWin(newBoard, 'X')) return { score: -10 };
             if (checkWin(newBoard, 'O')) return { score: 10 };
             if (emptyCells.length === 0) return { score: 0 };
@@ -269,18 +273,12 @@
             for (let i = 0; i < emptyCells.length; i++) {
                 const move = { index: emptyCells[i] };
                 newBoard[emptyCells[i]] = player;
-
                 move.score = player === 'O' ? minimax(newBoard, 'X').score : minimax(newBoard, 'O').score;
                 newBoard[emptyCells[i]] = '';
                 moves.push(move);
             }
-
             return moves.reduce((bestMove, move) => {
-                if ((player === 'O' && move.score > bestMove.score) ||
-                    (player === 'X' && move.score < bestMove.score)) {
-                    return move;
-                }
-                return bestMove;
+                return (player === 'O' ? move.score > bestMove.score : move.score < bestMove.score) ? move : bestMove;
             }, { score: player === 'O' ? -Infinity : Infinity });
         }
 
@@ -293,8 +291,15 @@
             return winningConditions.some(([a, b, c]) => board[a] === player && board[b] === player && board[c] === player);
         }
 
+        document.addEventListener('click', () => {
+            if (resetEnabled && gameFinished) {
+                resetGame();
+            }
+        });
+
         createBoard();
     </script>
 </body>
 </html>
+
 
